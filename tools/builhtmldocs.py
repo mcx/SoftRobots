@@ -31,9 +31,20 @@ def replaceStringInFile(aFile, outFile, aDictionary):
                 #if aString in line:
 	        #	line=line.replace(aString, "<a href=\"" + dictionary[aString] + "\">" + aString + "</a>")
         	fo.write(line)
-        			
         fo.close()
         f.close()
+
+def createDictionaryOfComponentsFrom(aDirectory):
+        aDictionary={}
+        for aPathComponent in sys.argv[2:]:
+	        for (dirpath, dirnames, aFilenames) in os.walk(aPathComponent):
+	                for aFilename in aFilenames:
+			        aFilename,theExt = os.path.splitext(ntpath.basename(aFilename))
+			        if theExt in sofaext:
+				        aDictionary[aFilename] = dirpath+"/"+aFilename+theExt
+        return aDictionary
+
+############################################ MAIN HERE
 
 if len(sys.argv) <= 2:
 	print ("USAGE: ./buildhtmldocs dirname componentDirName")
@@ -49,7 +60,6 @@ dictionary={}
 #			if theExt in sofaext:
 #				dictionary[aFilename] = dirpath+"/"+aFilename+theExt
 
-
 print(str(len(dictionary))+" components loaded.")
 
 hooks = "hooks.json"
@@ -59,7 +69,6 @@ if os.path.exists(hooks):
 		dictionary[k] = d[k]
 
 	print(str(len(d))+" hooks loaded.")
-
 
 pathprefix = os.path.abspath(sys.argv[1]) + "/"
 for (dirpath, dirnames, aFilenames) in os.walk(pathprefix):
@@ -75,3 +84,4 @@ for (dirpath, dirnames, aFilenames) in os.walk(pathprefix):
                         if retcode == 0 :
                         	replaceStringInFile(dirpath + "/" + aFile + ".html.tmp", dirpath + "/" + aFile + ".html", dictionary)
                                 os.remove( dirpath + "/" + aFile + ".html.tmp" )
+
