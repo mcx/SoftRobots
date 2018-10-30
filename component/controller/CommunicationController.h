@@ -39,7 +39,7 @@
 #include <sofa/helper/OptionsGroup.h>
 #include <sofa/helper/vectorData.h>
 
-#include "../initSoftRobots.h"
+#include <SoftRobots/initSoftRobots.h>
 
 namespace sofa
 {
