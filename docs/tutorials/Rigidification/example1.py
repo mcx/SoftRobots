@@ -121,22 +121,13 @@ def createScene(rootNode):
         
         elasticobject = ElasticMaterialObject(rootNode, 
                                               rotation=[90,0,0], 
-                                              volumeMeshFileName="data/tripod_mid.gidmsh", 
+                                              volumeMeshFileName="data/tripod_low.gidmsh", 
                                               youngModulus=100, poissonRatio=0.4)
-
-        fixingboxroi = FixedBox(elasticobject, atPositions=[-9.0, -9.0, -60.0, 9.0, 9.0, -40.0])
-        fixingboxroi.BoxROI.drawBoxes=True
-        
-        #z = rootNode.createChild("Zut")                                      
-        #frame = z.createObject("MechanicalObject", name="frames", template="Rigid", showObject=True, showObjectScale=10)
-
+    
         simulation = rootNode.createChild("Simulation")
         simulation.createObject("EulerImplicitSolver", rayleighStiffness=0.01)
         simulation.createObject("CGLinearSolver")
-        
-        
-        #elasticobject.rigidifyRegion()
-        
+                
         o = ElastoRigidObject(simulation, elasticobject, 
                          frameOrientation = [[0,00,0], [00,00,0], [0,0,0]],
                          orientedBoxes=[ getOrientedBoxFromTransform(translation=[20,0,10],
@@ -151,20 +142,3 @@ def createScene(rootNode):
                                                                       ])
         o.RigidParts.createObject("FixedConstraint", indices=0)
         
-        #roi1 = BoxROI(elasticobject)
-        #roi2 = BoxROI(elasticobject)
-        
-        #rigidify(elasticobject, roi1)
-        
-#   CompositeObject:
-#        Topology:
-#            MeshTopology
-#        ElasticPart:
-#            MechnicalObject<Vec3> set1                  
-#        RigidPart:
-#            MechanicalObject<Rigid>
-#            RigidMapping           
-#               MechnicalObject<Vec3> set2                  
-#        Compound:
-#               SubsetMultiMapping<>
-#               TetrahedronFEMForceField
