@@ -58,21 +58,8 @@ using defaulttype::Vector3;
 
 template<class DataTypes>
 UnilateralPlaneConstraint<DataTypes>::UnilateralPlaneConstraint(MechanicalState* object)
-    : Inherit(object)
+    : Inherit1(object)
     , d_indices(initData(&d_indices,"indices","Four indices: \n"
-                         "-First one for the constrained point \n"
-                         "-The others to describe the plane"))
-
-    , d_flipNormal(initData(&d_flipNormal,false,"flipNormal","The normal must be to the direction of the point"))
-
-    , m_columnIndex(0)
-{
-}
-
-
-template<class DataTypes>
-UnilateralPlaneConstraint<DataTypes>::UnilateralPlaneConstraint()
-    : d_indices(initData(&d_indices,"indices","Four indices: \n"
                          "-First one for the constrained point \n"
                          "-The others to describe the plane"))
 
@@ -93,7 +80,7 @@ template<class DataTypes>
 void UnilateralPlaneConstraint<DataTypes>::init()
 {
     m_componentstate = ComponentState::Invalid;
-    Inherit::init();
+    Inherit1::init();
 
     if(mstate == nullptr)
     {
@@ -236,7 +223,7 @@ void UnilateralPlaneConstraint<DataTypes>::drawPoints(const VisualParams* vparam
     for (unsigned int i=0; i<nbPoints; i++)
         points[i] = positions[d_indices.getValue()[i]];
 
-    vparams->drawTool()->drawPoints(points, 5, Vec4f(0.9,0.4,0,1));
+    vparams->drawTool()->drawPoints(points, 5, Vec4f(0.9f,0.4f,0.0f,1.0f));
 }
 
 template<class DataTypes>
@@ -248,7 +235,7 @@ void UnilateralPlaneConstraint<DataTypes>::drawTriangles(const VisualParams* vpa
     for (unsigned int i=0; i<3; i++)
         points[i] = positions[d_indices.getValue()[i+1]];
 
-    vparams->drawTool()->drawTriangles(points, Vec4f(1,0.6,0.2,1));
+    vparams->drawTool()->drawTriangles(points, Vec4f(1.0f,0.6f,0.2f,1.0f));
 
 }
 
@@ -265,7 +252,7 @@ void UnilateralPlaneConstraint<DataTypes>::drawArrows(const VisualParams* vparam
         normal = -normal;
     normal.normalize();
 
-    Vec4f color(0.9,0.4,0,1);
+    Vec4f color(0.9f,0.4f,0.0f,1.0f);
     vparams->drawTool()->drawArrow((p1+p2+p3)/3., (p1+p2+p3)/3. + normal, 0.1, color, 4);
 }
 

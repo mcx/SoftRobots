@@ -83,14 +83,18 @@ public:
 
     //Config
     Data<string>                 d_port;
-    Data<int>                    d_baudRate;
-    Data<helper::vector<double>> d_packetOut;
+    Data<unsigned int>           d_baudRate;
+    Data<helper::vector<unsigned char>> d_packetOut;
     Data<helper::vector<unsigned char>> d_packetIn;
+    // To remove before v20.0 of the plugin
+    Data<helper::vector<double>>        d_packetOutDeprecated;
+    Data<helper::vector<unsigned char>> d_packetInDeprecated;
+    // ////////////////////////////////////
     Data<helper::vector<unsigned char>> d_header;
-    Data<int>                    d_size;
+    Data<unsigned int>           d_size;
     Data<bool>                   d_precise;
     Data<bool>                   d_splitPacket;
-    Data<int>                    d_redundancy;
+    Data<unsigned int>           d_redundancy;
     Data<bool>                   d_doReceive;
 
 protected:
@@ -104,6 +108,11 @@ protected:
     void receivePacket();
     void sendPacket();
     void sendPacketPrecise();
+
+    // To remove before v20.0 of the plugin
+    void dataDeprecationManagement();
+    void updateLinkToDeprecatedData();
+    // ////////////////////////////////////
 
 };  //class SerialPortBridgeGeneric
 
