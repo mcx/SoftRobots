@@ -6,11 +6,20 @@ from stlib.physics.deformable import ElasticMaterialObject
 from stlib.physics.constraints import FixedBox
 
 ## TODO List
-## Crash when root contains MechanicalObject
+## Crash when root contains MechanicalObject
 
-
-
-def ElastoRigidObject(targetObject, sourceObject, boxFrames, orientedBoxes):
+# TODO(dmarchal) Add gather the Rigid DOF-mapping inside rigidified part.
+# TODO(dmarchal) Instead of boxframe 
+def ElastoRigidObject(targetObject, sourceObject, frameOrientation, orientedBoxes):
+        """
+            param vertexGroups: 
+            param framesOrientation: array of orientation. The length of the array should be equal to the number 
+                                    of rigid component. The orientation are given in eulerAngles (in radians) by passing 
+                                    three value or using a quaternion by passing four.
+                                    [[0,10,20], [0.1,0.5,0.3,0.4]]
+                                    
+                                    
+        """
         sourceObject.init()
         ero = targetObject.createChild("ElastoRigidObject")
 
@@ -19,9 +28,10 @@ def ElastoRigidObject(targetObject, sourceObject, boxFrames, orientedBoxes):
         
         centers = []
         selectedIndices=[]
+        indicesMap=[]
         for index in range(len(orientedBoxes)):
                 orientedBox = orientedBoxes[index]
-                boxFrame = boxFrames[index]
+                boxFrame = frameOrientation[index]
                 box = ero.createObject("BoxROI", name="filters",
                                orientedBox=orientedBox,
                                position=sourceObject.container.position, 
@@ -31,12 +41,12 @@ def ElastoRigidObject(targetObject, sourceObject, boxFrames, orientedBoxes):
                 center = sdiv( sum(map(Vec3, box.pointsInROI)), float(len(box.pointsInROI))) + list(orientation)
                 centers.append(center)
                 selectedIndices += map(lambda x: x[0], box.indices)
+                indicesMap += [index] * len(box.indices)
  
         maps = []
         
-        otherIndices = filter(lambda x: x not in selectedIndices, allIndices)         
-                
-        Kd = {v:None for k,v in enumerate(allIndices)}
+        otherIndices = filter(lambda x: x not in selectedIndices, allIndices)                   
+        Kd = {v:None for k,v in enumerate(allIndices)}        
         Kd.update( {v:[0,k] for k,v in enumerate(otherIndices)} )
         Kd.update( {v:[1,k] for k,v in enumerate(selectedIndices)} )
         indexPairs = [v for kv in Kd.values() for v in kv]
@@ -46,8 +56,6 @@ def ElastoRigidObject(targetObject, sourceObject, boxFrames, orientedBoxes):
         freeParticules.createObject("MechanicalObject", template="Vec3", name="freedofs",
                                                         position=[allPositions[i] for i in otherIndices],
                                                         showObject=True, showObjectScale=5, showColor=[1.0,0.0,1.0,1.0])
-        
-        print("Center"+repr(centers))
         
         rigidParts = ero.createChild("RigidParts")
         rigidParts.createObject("MechanicalObject", template="Rigid", name="dofs", reserve=len(centers), 
@@ -60,18 +68,17 @@ def ElastoRigidObject(targetObject, sourceObject, boxFrames, orientedBoxes):
         rigidifiedParticules.createObject("MechanicalObject", template="Vec3", name="dofs",
                                                         position=[allPositions[i] for i in selectedIndices],
                                                         showObject=True, showObjectScale=5, showColor=[1.0,1.0,0.0,1.0])
-        rigidifiedParticules.createObject("RigidMapping", globalToLocalCoords='true')
+        rigidifiedParticules.createObject("RigidMapping", globalToLocalCoords='true', rigidIndexPerPoint=indicesMap)
 
         interactions = ero.createChild("MaterialCoupling")
         c = sourceObject.container                          
-        sourceObject.removeObject(c)
-        sourceObject.removeObject(sourceObject.forcefield)
-        interactions.addObject(c)
-        mass = sourceObject.mass
-        sourceObject.removeObject(mass)
-        interactions.addObject(mass)
-        mass.init()
-        sourceObject.removeObject(sourceObject.dofs)
+        sourceObject.removeObject(sourceObject.solver)
+        sourceObject.removeObject(sourceObject.integration)
+        sourceObject.removeObject(sourceObject.LinearSolverConstraintCorrection)
+        
+        #sourceObject.removeObject(c)
+        #sourceObject.removeObject(sourceObject.forcefield)        
+        #sourceObject.removeObject(sourceObject.dofs)
         
         interactions.createObject("MechanicalObject", 
                                   template="Vec3", name="dofs", 
@@ -83,12 +90,28 @@ def ElastoRigidObject(targetObject, sourceObject, boxFrames, orientedBoxes):
                                   indexPairs=indexPairs)
                                   
         interactions.createObject("TetrahedronFEMForceField")  
-                                  
+        interactions.createObject("UniformMass", name="mass", vertexMass=sourceObject.mass.vertexMass)
+        
+        interactions.addObject(c)
+                           
         rigidifiedParticules.addChild(interactions)
         freeParticules.addChild(interactions)
         ero.removeChild(interactions)
+        sourceObject.node.activated=False
+        
         return ero
 
+
+#    DeformableObjec
+#      Volume linear elastic object. 
+#        vec3
+#        virtual rigidify
+        
+#    ElasticMaterialObject: DeformableObject
+#        lawComportement
+#        type élément: déduit du format de fichier. 
+#        add: TetraForceField 
+#    Comme(ElasticMatirielObject, remplace("TetrahedronFEMFORCE", "FEM"))
         
 def createScene(rootNode):
         MainHeader(rootNode, plugins=["SofaSparseSolver"])
@@ -96,28 +119,37 @@ def createScene(rootNode):
         rootNode.createObject("DefaultAnimationLoop")
         rootNode.createObject("DefaultVisualManagerLoop")
         
-        rootNode.createObject("EulerImplicitSolver", rayleighStiffness=0.01)
-        rootNode.createObject("CGLinearSolver")
         elasticobject = ElasticMaterialObject(rootNode, 
                                               rotation=[90,0,0], 
-                                              volumeMeshFileName="data/tripod_low.gidmsh", youngModulus=100, poissonRatio=0.4)
-        
+                                              volumeMeshFileName="data/tripod_mid.gidmsh", 
+                                              youngModulus=100, poissonRatio=0.4)
+
         fixingboxroi = FixedBox(elasticobject, atPositions=[-9.0, -9.0, -60.0, 9.0, 9.0, -40.0])
         fixingboxroi.BoxROI.drawBoxes=True
         
-        
         #z = rootNode.createChild("Zut")                                      
         #frame = z.createObject("MechanicalObject", name="frames", template="Rigid", showObject=True, showObjectScale=10)
-        ElastoRigidObject(rootNode, elasticobject, 
-                         boxFrames = [[90,60,0], [10,45,0]][1:],
-                         orientedBoxes=[ getOrientedBoxFromTransform(translation=[30,0,10],
+
+        simulation = rootNode.createChild("Simulation")
+        simulation.createObject("EulerImplicitSolver", rayleighStiffness=0.01)
+        simulation.createObject("CGLinearSolver")
+        
+        
+        #elasticobject.rigidifyRegion()
+        
+        o = ElastoRigidObject(simulation, elasticobject, 
+                         frameOrientation = [[0,00,0], [00,00,0], [0,0,0]],
+                         orientedBoxes=[ getOrientedBoxFromTransform(translation=[20,0,10],
                                                                      eulerRotation=[0,90,0], 
                                                                      scale=[30.0,20.0,30.0]),
                                          getOrientedBoxFromTransform(translation=[-35,-00,25],
                                                                      eulerRotation=[0,90,0], 
+                                                                     scale=[30.0,20.0,30.0]),
+                                         getOrientedBoxFromTransform(translation=[0,0,0],
+                                                                     eulerRotation=[0,00,0], 
                                                                      scale=[30.0,20.0,30.0])
-                                                                      ][1:])
-                    
+                                                                      ])
+        o.RigidParts.createObject("FixedConstraint", indices=0)
         
         #roi1 = BoxROI(elasticobject)
         #roi2 = BoxROI(elasticobject)
