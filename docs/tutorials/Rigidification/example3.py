@@ -7,16 +7,15 @@ from stlib.physics.constraints import FixedBox
 
 ## TODO List
 ## Crash when root contains MechanicalObject
-
+        
 # TODO(dmarchal) Add gather the Rigid DOF-mapping inside rigidified part.
-# TODO(dmarchal) Instead of boxframe 
-def Rigidify(targetObject, sourceObject, frameOrientation, orientedBoxes, name=None):
+def Rigidify(targetObject, sourceObject, frameOrientation, groupIndices, name=None):
         """
             param vertexGroups: 
             param framesOrientation: array of orientation. The length of the array should be equal to the number 
                                     of rigid component. The orientation are given in eulerAngles (in radians) by passing 
                                     three value or using a quaternion by passing four.
-                                    [[0,10,20], [0.1,0.5,0.3,0.4]]
+                                    [[0,3.14/2.0,3.14/3.0], [0.1,0.5,0.3,0.4]]
                                     
                                     
         """
@@ -30,21 +29,34 @@ def Rigidify(targetObject, sourceObject, frameOrientation, orientedBoxes, name=N
         allIndices = map( lambda x: x[0], sourceObject.container.points )
         
         centers = []
-        selectedIndices=[]
         indicesMap=[]
-        for index in range(len(orientedBoxes)):
-                orientedBox = orientedBoxes[index]
-                boxFrame = frameOrientation[index]
-                box = ero.createObject("BoxROI", name="filters",
-                               orientedBox=orientedBox,
-                               position=sourceObject.container.position, 
-                               drawBoxes=True, drawPoints=True, drawSize=2.0)
-                box.init()
-                orientation = Quat.createFromEuler(boxFrame)
-                center = sdiv( sum(map(Vec3, box.pointsInROI)), float(len(box.pointsInROI))) + list(orientation)
+        def mfilter(si, ai, pts):
+                tmp=[]
+                for index in ai:
+                        if index in si:
+                                tmp.append(pts[index])
+                return tmp;        
+        
+        # get all the points from the source.         
+        sourcePoints = map(Vec3, sourceObject.dofs.position) 
+        selectedIndices=[]
+        for index in range(len(groupIndices)):
+                selectedPoints = mfilter(groupIndices[index], allIndices, sourcePoints)                 
+                                
+        
+                if len(frameOrientation[index])==3:
+                        orientation = Quat.createFromEuler(frameOrientation[index])
+                else:
+                        orientation = frameOrientation[index]
+                
+                poscenter = [0.0,0.0,0.0]
+                if len(selectedPoints) != 0:
+                        poscenter = sdiv( sum(selectedPoints), float(len(selectedPoints)))                 
+                center = poscenter + list(orientation)
                 centers.append(center)
-                selectedIndices += map(lambda x: x[0], box.indices)
-                indicesMap += [index] * len(box.indices)
+                
+                selectedIndices += map(lambda x: x, groupIndices[index])
+                indicesMap += [index] * len(groupIndices[index])
  
         maps = []
         
@@ -90,16 +102,45 @@ def Rigidify(targetObject, sourceObject, frameOrientation, orientedBoxes, name=N
         return ero
 
 
-#    DeformableObjec
-#      Volume linear elastic object. 
-#        vec3
-#        virtual rigidify
-        
-#    ElasticMaterialObject: DeformableObject
-#        lawComportement
-#        type élément: déduit du format de fichier. 
-#        add: TetraForceField 
-#    Comme(ElasticMatirielObject, remplace("TetrahedronFEMFORCE", "FEM"))
+class BoxROI(object):
+        def __init__(self, node, sourceObject, orientedBoxes):      
+                node = node.createChild("Select")          
+                self.sourceObject = sourceObject
+                self.boxes = []
+                for orientedBox in orientedBoxes:
+                        box = node.createObject("BoxROI", name="filters",
+                               orientedBox=orientedBox,
+                               position=sourceObject.dofs.findData("position").getLinkPath(), 
+                               drawBoxes=True, drawPoints=True, drawSize=2.0)
+                        self.boxes.append(box)
+                        
+        def getIndices(self):
+                self.sourceObject.init()
+                indices = []
+                for box in self.boxes:
+                        box.init()
+                        indices.append(map(lambda x: x[0], box.indices))
+                print("STR: "+str(indices))
+                return indices
+
+def boxFilter(node, sourceObject, orientedBoxes):
+                sourceObject.init()
+   
+                selectnode = node.createChild("Select")          
+                boxes = []
+                for orientedBox in orientedBoxes:
+                        box = selectnode.createObject("BoxROI", name="filters",
+                               orientedBox=orientedBox,
+                               position=sourceObject.dofs.findData("position").getLinkPath(), 
+                               drawBoxes=True, drawPoints=True, drawSize=2.0)
+                        boxes.append(box)
+                        
+                indices = []
+                for box in boxes:
+                        box.init()
+                        indices.append(map(lambda x: x[0], box.indices))
+                node.removeChild(selectnode)
+                return indices
 
 def addToSimulation(simulationNode, modelNode):
         simulationNode.addChild(modelNode)
@@ -116,20 +157,24 @@ def createScene(rootNode):
                                               volumeMeshFileName="data/tripod_low.gidmsh", 
                                               youngModulus=100, poissonRatio=0.4)
     
-        o = Rigidify(modelNode,
-                     elasticobject,
-                     name="RigidifiedStructure", 
-                     frameOrientation = [[0,00,0], [00,00,0], [0,0,0]],
-                     orientedBoxes=[ getOrientedBoxFromTransform(translation=[20,0,10],
-                                                                     eulerRotation=[0,90,0], 
-                                                                     scale=[30.0,20.0,30.0]),
+        b = boxFilter(modelNode, elasticobject, 
+                                         orientedBoxes=[ 
+                                         getOrientedBoxFromTransform(translation=[20,0,0],
+                                                                     eulerRotation=[0,0,0], 
+                                                                     scale=[10.0,10.0,40.0]),
                                          getOrientedBoxFromTransform(translation=[-35,-00,25],
-                                                                     eulerRotation=[0,90,0], 
+                                                                     eulerRotation=[0,0,0], 
                                                                      scale=[30.0,20.0,30.0]),
                                          getOrientedBoxFromTransform(translation=[0,0,0],
                                                                      eulerRotation=[0,00,0], 
                                                                      scale=[30.0,20.0,30.0])
-                                                                      ])
+                                                                      ])    
+        o = Rigidify(modelNode,
+                     elasticobject,
+                     name="RigidifiedStructure", 
+                     frameOrientation = [[0.0,0.0,0.0], [0.0,0.0,0.0], [0.0,0.0,0.0]],
+                     #groupIndices=b.getIndices())
+                     groupIndices=b)
         
         #c = o.createChild("ExternalConstraints")
         #c = c.createObject("FixedConstraint", template="Vec3d", indices=0, mstate=o.RigidParts.dofs.getLinkPath()) 
