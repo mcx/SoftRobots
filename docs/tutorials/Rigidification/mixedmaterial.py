@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
-import splib
+"""
+Created on Fri Feb  8 13:06:35 2019
+
+@author: dmarchal
+"""
 from splib.numerics import Vec3, Quat, sdiv, RigidDof, getOrientedBoxFromTransform 
 from stlib.scene import MainHeader, ContactHeader
 from stlib.physics.deformable import ElasticMaterialObject
 from stlib.physics.constraints import FixedBox
 
-## TODO List
-## Crash when root contains MechanicalObject
-        
-# TODO(dmarchal) Add gather the Rigid DOF-mapping inside rigidified part.
 def Rigidify(targetObject, sourceObject, frameOrientation, groupIndices, name=None):
         """
             param vertexGroups: 
@@ -68,18 +68,18 @@ def Rigidify(targetObject, sourceObject, frameOrientation, groupIndices, name=No
         
         freeParticules = ero.createChild("DeformableParts")
         freeParticules.createObject("MechanicalObject", template="Vec3", name="dofs",
-                                                        position=[allPositions[i] for i in otherIndices],
-                                                        showObject=True, showObjectScale=5, showColor=[1.0,0.0,1.0,1.0])
+                                                        position=[allPositions[i] for i in otherIndices])
+        #                                                showObject=True, showObjectScale=5, showColor=[1.0,0.0,1.0,1.0])
         #sourceObject.getData("name").value = "Coupling"        
         
         rigidParts = ero.createChild("RigidParts")
-        rigidParts.createObject("MechanicalObject", template="Rigid", name="dofs", reserve=len(centers), 
-                                showObject=True, showObjectScale=15, position=centers)
+        rigidParts.createObject("MechanicalObject", template="Rigid", name="dofs", reserve=len(centers), position=centers)
+                                #showObject=True, showObjectScale=15, )
            
         rigidifiedParticules=rigidParts.createChild("RigidifiedParticules")
         rigidifiedParticules.createObject("MechanicalObject", template="Vec3", name="dofs",
-                                                        position=[allPositions[i] for i in selectedIndices],
-                                                        showObject=True, showObjectScale=5, showColor=[1.0,1.0,0.0,1.0])
+                                                        position=[allPositions[i] for i in selectedIndices])
+                                                        #showObject=True, showObjectScale=5, showColor=[1.0,1.0,0.0,1.0])
         rigidifiedParticules.createObject("RigidMapping", name="mapping", globalToLocalCoords='true', rigidIndexPerPoint=indicesMap)
 
         sourceObject.removeObject(sourceObject.solver)
@@ -141,52 +141,3 @@ def boxFilter(node, sourceObject, orientedBoxes):
                         indices.append(map(lambda x: x[0], box.indices))
                 node.removeChild(selectnode)
                 return indices
-
-def addToSimulation(simulationNode, modelNode):
-        simulationNode.addChild(modelNode)
-        
-def createScene(rootNode):
-        MainHeader(rootNode, plugins=["SofaSparseSolver"])
-        rootNode.VisualStyle.displayFlags="showBehavior"
-        rootNode.createObject("DefaultAnimationLoop")
-        rootNode.createObject("DefaultVisualManagerLoop")
-        
-        modelNode = rootNode.createChild("Modeling")        
-        elasticobject = ElasticMaterialObject(modelNode, 
-                                              rotation=[90,0,0], 
-                                              volumeMeshFileName="data/tripod_low.gidmsh", 
-                                              youngModulus=100, poissonRatio=0.4)
-    
-        b = boxFilter(modelNode, elasticobject, 
-                                         orientedBoxes=[ 
-                                         getOrientedBoxFromTransform(translation=[20,0,0],
-                                                                     eulerRotation=[0,0,0], 
-                                                                     scale=[10.0,10.0,40.0]),
-                                         getOrientedBoxFromTransform(translation=[-35,-00,25],
-                                                                     eulerRotation=[0,0,0], 
-                                                                     scale=[30.0,20.0,30.0]),
-                                         getOrientedBoxFromTransform(translation=[0,0,0],
-                                                                     eulerRotation=[0,00,0], 
-                                                                     scale=[30.0,20.0,30.0])
-                                                                      ])    
-        o = Rigidify(modelNode,
-                     elasticobject,
-                     name="RigidifiedStructure", 
-                     frameOrientation = [[0.0,0.0,0.0], [0.0,0.0,0.0], [0.0,0.0,0.0]],
-                     #groupIndices=b.getIndices())
-                     groupIndices=b)
-        
-#        c = o.createChild("ExternalConstraints")
-#        c = c.createObject("FixedConstraint", template="Vec3d", indices=0, mstate=o.RigidParts.dofs.getLinkPath()) 
-#        c.getLink("mstate").setValueString(o.RigidParts.dofs.getLinkPath())
-#        print(o.RigidParts.dofs.getLinkPath())
-#        c.init() 
-        o.RigidParts.createObject("FixedConstraint", indices=0)
-        
-        simulation = rootNode.createChild("Simulation")
-        #simulation.createObject("DefaultAnimationLoop")
-        #simulation.createObject("DefaultVisualManagerLoop")
-        simulation.createObject("EulerImplicitSolver", name="integrationscheme", rayleighStiffness=0.01)
-        simulation.createObject("CGLinearSolver", name="solver")
-        addToSimulation(simulation, o)            
-        
