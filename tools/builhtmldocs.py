@@ -18,6 +18,11 @@ import io
 sofaext=['.scn', ".pyscn", ".psl"]
 
 autofile_re = re.compile("\.\.autofile::(\S*)")
+clean = re.compile('<.*?>')
+
+def remove_html_tags(text):
+    """Remove html tags from a string"""
+    import re
 
 def doAutoFile(aFile, outFile):
     f = open(aFile, "rt")
@@ -25,6 +30,8 @@ def doAutoFile(aFile, outFile):
 
     lineno = 0
     for line in f:
+        #line = re.sub(clean, '', line)
+
         m = autofile_re.search(line)
         if  m != None:
             path = os.path.dirname(aFile)
