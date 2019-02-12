@@ -12,6 +12,7 @@ from actuatedarm import ActuatedArm
 from tripod import ElasticBody
 from tripodcontroller import MyController
 
+
 def Effector(tripod, positions):
     e = tripod.createChild("Effector")
     ## Select the center points for the effector.
@@ -61,11 +62,11 @@ def Tripod(parent, name="Tripod", radius=55, numMotors=3, angleShift=180.0):
                  frameOrientation = angles, #+[[0.0,0.0,0.0,1.0]],
                  groupIndices=b)
     
-    test = o.createObject('MechanicalMatrixMapper', template='Vec3,Rigid3', 
-                                   object1=o.DeformableParts.getLinkPath(), object2=o.RigidParts.dofs.getLinkPath(),
-                                   nodeToParse = o.RigidParts.RigidifiedParticules.getLinkPath() )
-   
-    
+    test = tripod.createObject('MechanicalMatrixMapper', template='Vec3,Rigid3', 
+                                   object1=o.DeformableParts.getLinkPath(), 
+                                   object2=o.RigidParts.dofs.getLinkPath(),
+                                   nodeToParse = o.RigidParts.RigidifiedParticules.ElasticMaterialObject.getLinkPath())
+                                  
     for i in range(0, 3):
         a=arms[i].ServoArm.createChild("Attach")
         a.createObject("MechanicalObject", template="Rigid3", name="dofs", showObject=True, showObjectScale=10, 
@@ -77,17 +78,20 @@ def Tripod(parent, name="Tripod", radius=55, numMotors=3, angleShift=180.0):
     #arms[2].addFrameConstraint(o.RigidParts.dofs, 2)                
     #o.RigidParts.createObject("FixedConstraint", indices=[0,1,2])
     #o.RigidParts.createObject("RestShapeSpringForceField", indices=[0,1,2])
-    o.RigidParts.createObject('RestShapeSpringsForceField', 
+    
+    if True:
+        o.RigidParts.createObject('RestShapeSpringsForceField', 
                               external_rest_shape=arms[0].ServoArm.Attach.dofs.getLinkPath(), points=[0], external_points=[0], 
                               angularStiffness=1e8, stiffness=1e10)
-    o.RigidParts.createObject('RestShapeSpringsForceField', 
+        o.RigidParts.createObject('RestShapeSpringsForceField', 
                               external_rest_shape=arms[1].ServoArm.Attach.dofs.getLinkPath(), points=[1], external_points=[0], 
                               angularStiffness=1e8, stiffness=1e10)
-    o.RigidParts.createObject('RestShapeSpringsForceField', 
+        o.RigidParts.createObject('RestShapeSpringsForceField', 
                               external_rest_shape=arms[2].ServoArm.Attach.dofs.getLinkPath(), points=[2], external_points=[0], 
                               angularStiffness=1e8, stiffness=1e10)
+    
 
-    for i in range(0, 3):
+    for i in range(0, numMotors):
         arms[i].createObject("FixedConstraint")
         arms[i].ServoMotor.ServoWheel.createObject("FixedConstraint")
         
@@ -105,18 +109,17 @@ def createScene(rootNode):
     
     scene.createObject("MeshSTLLoader", name="loader", filename="data/mesh2/blueprint.stl")
     scene.createObject("OglModel", src="@loader")
-
+    #scene.createObject("CGLinearSolver", iterations=100)
+    scene.createObject("EulerImplicitSolver", firstOrder=0)
+    scene.createObject("SparseLDLSolver")
+      
+    
     tripod = Tripod(rootNode)
-
+    
     # The regular controller that is being used for the last 2 steps
     MyController(rootNode, [tripod.ActuatedArm0,
                             tripod.ActuatedArm1,
                             tripod.ActuatedArm2])
 
 
-    simulation = scene.createChild("Simulation")
-    simulation.createObject("EulerImplicitSolver", firstOrder=1, rayleighStiffness=0.001)
-    #simulation.createObject("SparseLDLSolver")
-    simulation.createObject("CGLinearSolver")
-      
-    simulation.addChild(tripod)
+    

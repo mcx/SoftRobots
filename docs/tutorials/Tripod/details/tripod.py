@@ -10,7 +10,7 @@ def ElasticBody(parent):
     e = ElasticMaterialObject(body,
                               volumeMeshFileName="data/mesh2/tripod_low.gidmsh",
                               translation=[0.0,30,0.0], rotation=[90,0,0],
-                              youngModulus=6000, poissonRatio=0.45, totalMass=0.4)
+                              youngModulus=600, poissonRatio=0.45, totalMass=0.4)
 
     visual = body.createChild("Visual")
     visual.createObject("MeshSTLLoader", name="loader", filename="data/mesh2/tripod_mid.stl")
