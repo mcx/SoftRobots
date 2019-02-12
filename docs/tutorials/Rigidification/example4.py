@@ -1,10 +1,11 @@
+
 # -*- coding: utf-8 -*-
 import splib
 from splib.numerics import Vec3, Quat, sdiv, RigidDof, getOrientedBoxFromTransform 
 from stlib.scene import MainHeader, ContactHeader
 from stlib.physics.deformable import ElasticMaterialObject
 from stlib.physics.constraints import FixedBox
-from mixedmaterial import Rigidify, boxFilter
+from mixedmaterial import Rigidify, boxFilter, Box
 
 def addToSimulation(simulationNode, modelNode):
         simulationNode.addChild(modelNode)
@@ -16,7 +17,6 @@ def addSubPointToRigid(c, p):
 
 def setData(d, **kwargs):
         for k in kwargs:
-            print("k.V: "+str((k)))
             d.getData(str(k)).value = kwargs[k]
             #d.showObject=True
             #d.showObjectScale=0.2
@@ -66,7 +66,9 @@ def createScene(rootNode):
                                          getOrientedBoxFromTransform(translation=[0,0,0],
                                                                      eulerRotation=[0,00,0], 
                                                                      scale=[30.0,20.0,30.0])
-                                                                      ])    
+                                                                      ]) 
+        
+                                 
         o = Rigidify(modelNode,
                      elasticobject,
                      name="RigidifiedStructure", 

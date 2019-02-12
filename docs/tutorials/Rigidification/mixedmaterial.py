@@ -8,6 +8,7 @@ from splib.numerics import Vec3, Quat, sdiv, RigidDof, getOrientedBoxFromTransfo
 from stlib.scene import MainHeader, ContactHeader
 from stlib.physics.deformable import ElasticMaterialObject
 from stlib.physics.constraints import FixedBox
+from stlib.physics.mixedmaterial import 
 
 def Rigidify(targetObject, sourceObject, frameOrientation, groupIndices, name=None):
         """
@@ -86,10 +87,10 @@ def Rigidify(targetObject, sourceObject, frameOrientation, groupIndices, name=No
         sourceObject.removeObject(sourceObject.integration)
         sourceObject.removeObject(sourceObject.LinearSolverConstraintCorrection)
       
-        #sourceObject.dofs.position=sourceObject.container.position
-        #coupling = freeParticules.createChild("Coupling")
-        coupling = sourceObject.node
-        #coupling.addChild(sourceObject.node)
+        sourceObject.dofs.position=sourceObject.container.position
+        
+        coupling = freeParticules.createChild("Coupling")
+        coupling.addChild(sourceObject.node)
         coupling.createObject("SubsetMultiMapping", name="mapping", template="Vec3,Vec3", 
                                  input=freeParticules.dofs.getLinkPath()+" "+rigidifiedParticules.dofs.getLinkPath(), 
                                  output=sourceObject.dofs.getLinkPath(), 
@@ -98,7 +99,7 @@ def Rigidify(targetObject, sourceObject, frameOrientation, groupIndices, name=No
         #rigidifiedParticules.addChild(sourceObject.node)
         rigidifiedParticules.addChild(coupling)
         freeParticules.addChild(coupling)
-        #sourceObject.node.getParents()[0].removeChild(sourceObject.node)
+        sourceObject.node.getParents()[0].removeChild(sourceObject.node)
         return ero
 
 

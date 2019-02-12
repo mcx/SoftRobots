@@ -8,7 +8,7 @@
         - ActuatedArm
         - ServoArm
 """
-from splib.numerics import Transform, vec3
+from splib.numerics import Transform, vec3, RigidDof
 from splib.objectmodel import *
 from stlib.visuals import VisualModel
 from stlib.components import addOrientedBoxRoi
@@ -84,6 +84,27 @@ class ActuatedArm(object):
                                      external_rest_shape = constraint.dofs,
                                      stiffness='1e12')
 
+    def addFrameConstraint(self, frameDof, indice):
+        m = self.node.Box.createObject("RigidRigidMapping", name="mapping", 
+                                    output=self.ServoMotor.ServoWheel.dofs.getLinkPath(), index=indice,
+                                    input=frameDof.getLinkPath())
+
+    def addBox(self, position, translation, eulerRotation):
+        constraint = self.node.createChild("Box")
+        o = addOrientedBoxRoi(constraint, position=position,
+                                          translation=vec3.vadd(translation, [0.0,25.0,0.0]),
+                                          eulerRotation=eulerRotation, scale=[45,15,50])
+
+        #d = constraint.createObject("MechanicalObject", name="dofs", template="Rigid3", 
+        #                        position=[0.0,50.0,0.0,0.0,0.0,0.0,1.0],
+        #                        showObject=True, showObjectScale=10.0)
+        #rd = RigidDof(d)    
+        #rd.translate(rd.up*50.0) ,
+
+        o.drawSize = 5
+        o.init()    
+        
+
     def addConstraint(self, position, translation, eulerRotation):
         constraint = self.node.createChild("Constraint")
         o = addOrientedBoxRoi(constraint, position=position,
@@ -105,15 +126,18 @@ class ActuatedArm(object):
 
         return constraint
 
+
 def createScene(rootNode):
     from splib.animation import animate
     from stlib.scene import Scene
     scene = Scene(rootNode)
-    scene.addSolver()
+    #scene.addSolver()
+    scene.createObject("EulerImplicitSolver")
+    scene.createObject("SparseLDLSolver")
     scene.VisualStyle.displayFlags="showBehavior"
 
     arm1 = ActuatedArm(scene, name="arm1", translation=[-2.0,0.0,0.0])
-
+    arm1.createObject("FixedConstraint")
     def myanimate(target, factor):
         target.angle = factor
 

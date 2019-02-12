@@ -157,10 +157,10 @@ def createScene(rootNode):
                                               volumeMeshFileName="data/tripod_low.gidmsh", 
                                               youngModulus=100, poissonRatio=0.4)
     
-        b = boxFilter(modelNode, elasticobject, 
+        b = BoxROI(modelNode, elasticobject, 
                                          orientedBoxes=[ 
-                                         getOrientedBoxFromTransform(translation=[20,0,0],
-                                                                     eulerRotation=[0,0,0], 
+                                         getOrientedBoxFromTransform(translation=[50,0,0],
+                                                                     eulerRotation=[0,150,0], 
                                                                      scale=[10.0,10.0,40.0]),
                                          getOrientedBoxFromTransform(translation=[-35,-00,25],
                                                                      eulerRotation=[0,0,0], 
@@ -173,8 +173,8 @@ def createScene(rootNode):
                      elasticobject,
                      name="RigidifiedStructure", 
                      frameOrientation = [[0.0,0.0,0.0], [0.0,0.0,0.0], [0.0,0.0,0.0]],
-                     #groupIndices=b.getIndices())
-                     groupIndices=b)
+                     groupIndices=b.getIndices())
+                     #groupIndices=b)
         
 #        c = o.createChild("ExternalConstraints")
 #        c = c.createObject("FixedConstraint", template="Vec3d", indices=0, mstate=o.RigidParts.dofs.getLinkPath()) 

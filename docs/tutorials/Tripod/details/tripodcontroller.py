@@ -12,6 +12,7 @@ def setupanimation(actuators, step, angularstep, rayonMin, rayonMax, factor):
             rigid = RigidDof( actuator.dofs )
             rigid.setPosition( rigid.getRestPosition() + rigid.forward * (rayonMax-rayonMin) * factor )
             actuator.ServoMotor.angle += angularstep * factor
+            #actuator.Box.activated=False
 
 class MyController(Sofa.PythonScriptController):
     """This controller has two role:
