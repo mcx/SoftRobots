@@ -100,9 +100,9 @@ def createScene(rootNode):
     tripod = Tripod(rootNode)
 
     # The regular controller that is being used for the last 2 steps
-    # MyController(rootNode, [tripod.ActuatedArm0,
-    #                         tripod.ActuatedArm1,
-    #                         tripod.ActuatedArm2])
+    MyController(rootNode, [tripod.ActuatedArm0,
+                            tripod.ActuatedArm1,
+                            tripod.ActuatedArm2])
 
     simulation = scene.createChild("Simulation")
     simulation.createObject("EulerImplicitSolver", firstOrder=0)
