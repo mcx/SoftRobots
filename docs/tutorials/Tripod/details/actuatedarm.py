@@ -35,14 +35,14 @@ class ServoArm(object):
         """
         self.node = parent.createChild(name)
         self.node.createObject("MechanicalObject",
-                                           name="dofs",
-                                           size=1,
-                                           template='Rigid',
-                                           showObject=True,
-                                           showObjectScale=15)
+                               name="dofs",
+                               size=1,
+                               template='Rigid3',
+                               showObject=True,
+                               showObjectScale=15)
 
         self.node.createObject('RigidRigidMapping',
-                          name="mapping", input=mappingInput, index=indexInput)
+                               name="mapping", input=mappingInput, index=indexInput)
 
         visual = VisualModel(self.node, 'data/mesh2/SG90_servoarm.stl')
         visual.createObject('RigidMapping', name="mapping")
@@ -64,65 +64,62 @@ class ActuatedArm(object):
                 ServoArm             // The actuation arm connected to ServoMotor.ServoWheel
             }
     """
+
     def __init__(self, parent, name="ActuatedArm",
-                       translation=[0.0,0.0,0.0], eulerRotation=[0.0,0.0,0.0], attachingTo=None):
+                 translation=[0.0, 0.0, 0.0], eulerRotation=[0.0, 0.0, 0.0], attachingTo=None):
 
         self.node = parent.createChild(name)
-        r=Transform(translation, eulerRotation=eulerRotation)
+        r = Transform(translation, eulerRotation=eulerRotation)
 
         self.node.createObject("MechanicalObject", name="dofs", size=1, position=r.toSofaRepr(),
-                          template='Rigid', showObject=True, showObjectScale=15)
+                               template='Rigid3', showObject=True, showObjectScale=15)
 
         servomotor = ServoMotor(self.node)
         servomotor.createObject("RigidRigidMapping", name="mapping")
         ServoArm(self.node, servomotor.ServoWheel.dofs)
 
-        if attachingTo != None:
+        if attachingTo is not None:
             constraint = self.addConstraint(attachingTo.dofs.getData("rest_position"), translation, eulerRotation)
             attachingTo.createObject('RestShapeSpringsForceField',
-                                     points = constraint.BoxROI.getData("indices"),
-                                     external_rest_shape = constraint.dofs,
+                                     points=constraint.BoxROI.getData("indices"),
+                                     external_rest_shape=constraint.dofs,
                                      stiffness='1e12')
 
     def addFrameConstraint(self, frameDof, indice):
-        m = self.node.Box.createObject("RigidRigidMapping", name="mapping", 
-                                    output=self.ServoMotor.ServoWheel.dofs.getLinkPath(), index=indice,
-                                    input=frameDof.getLinkPath())
+        m = self.node.Box.createObject("RigidRigidMapping", name="mapping",
+                                       output=self.ServoMotor.ServoWheel.dofs.getLinkPath(), index=indice,
+                                       input=frameDof.getLinkPath())
 
     def addBox(self, position, translation, eulerRotation):
         constraint = self.node.createChild("Box")
         o = addOrientedBoxRoi(constraint, position=position,
-                                          translation=vec3.vadd(translation, [0.0,25.0,0.0]),
-                                          eulerRotation=eulerRotation, scale=[45,15,50])
+                              translation=vec3.vadd(translation, [0.0,25.0,0.0]),
+                              eulerRotation=eulerRotation, scale=[45,15,50])
 
-        #d = constraint.createObject("MechanicalObject", name="dofs", template="Rigid3", 
+        #d = constraint.createObject("MechanicalObject", name="dofs", template="Rigid3",
         #                        position=[0.0,50.0,0.0,0.0,0.0,0.0,1.0],
         #                        showObject=True, showObjectScale=10.0)
-        #rd = RigidDof(d)    
+        #rd = RigidDof(d)
         #rd.translate(rd.up*50.0) ,
 
         o.drawSize = 5
-        o.init()    
-        
+        o.init()
 
     def addConstraint(self, position, translation, eulerRotation):
         constraint = self.node.createChild("Constraint")
         o = addOrientedBoxRoi(constraint, position=position,
-                                          translation=vec3.vadd(translation, [0.0,25.0,0.0]),
-                                          eulerRotation=eulerRotation, scale=[45,15,30])
+                              translation=vec3.vadd(translation, [0.0, 25.0, 0.0]),
+                              eulerRotation=eulerRotation, scale=[45, 15, 30])
 
         o.drawSize = 5
-        t= constraint.createObject("TransformEngine", input_position="@BoxROI.pointsInROI",
-                                                        translation=translation, rotation=eulerRotation, inverse=True )
+        t = constraint.createObject("TransformEngine", input_position="@BoxROI.pointsInROI",
+                                   translation=translation, rotation=eulerRotation, inverse=True)
 
         constraint.createObject("MechanicalObject", name="dofs",
-                                                template="Vec3d", position="@TransformEngine.output_position",
-                                                showObject=True, showObjectScale=10.0)
+                                template="Vec3d", position="@TransformEngine.output_position",
+                                showObject=True, showObjectScale=10.0)
 
         constraint.createObject('RigidMapping', name="mapping", input=self.node.ServoMotor.ServoWheel.dofs, output="@./")
-
-
-
 
         return constraint
 
@@ -131,15 +128,15 @@ def createScene(rootNode):
     from splib.animation import animate
     from stlib.scene import Scene
     scene = Scene(rootNode)
-    #scene.addSolver()
     scene.createObject("EulerImplicitSolver")
     scene.createObject("SparseLDLSolver")
-    scene.VisualStyle.displayFlags="showBehavior"
+    scene.VisualStyle.displayFlags = "showBehavior"
 
-    arm1 = ActuatedArm(scene, name="arm1", translation=[-2.0,0.0,0.0])
+    arm1 = ActuatedArm(scene, name="arm1", translation=[-2.0, 0.0, 0.0])
     arm1.createObject("FixedConstraint")
+
     def myanimate(target, factor):
         target.angle = factor
 
     animate(myanimate, {"target" : arm1.ServoMotor},
-                        duration=0.5, mode="pingpong" )
+                        duration=0.5, mode="pingpong")

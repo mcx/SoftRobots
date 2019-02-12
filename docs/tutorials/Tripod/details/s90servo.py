@@ -56,18 +56,18 @@ class ServoMotor(SofaObject):
         get(servo.node, "dofs.showObjects").value = False
         get(servo.node, "servowheel.dofs.showObjects").value = False
     """
-    def __init__(self, parent,
-                 translation=[0.0,0.0,0.0], rotation=[0.0,0.0,0.0], scale=[1.0,1.0,1.0], doAddVisualModel=True):
+
+    def __init__(self, parent, translation=[0.0, 0.0, 0.0], rotation=[0.0, 0.0, 0.0], scale=[1.0, 1.0, 1.0], doAddVisualModel=True):
         self.node = Node(parent, "ServoMotor")
         self.node.addNewData("angle",
                              "ServoMotor Properties",
-                             "The angular position of the motor (in radians)","double", 0.0)
-        self.angle=self.node.findData("angle")
+                             "The angular position of the motor (in radians)", "double", 0.0)
+        self.angle = self.node.findData("angle")
 
         self.dofs = self.node.createObject("MechanicalObject", size=1,
-                                          name="dofs",
-                                          translation=translation, rotation=rotation, scale=scale,
-                                          template='Rigid', showObject=True, showObjectScale=15)
+                                           name="dofs",
+                                           translation=translation, rotation=rotation, scale3d=scale,
+                                           template='Rigid3', showObject=True, showObjectScale=15)
 
         self.servowheel = ServoWheel(self.node)
         self.controller = KinematicMotorController(self.node, self.dofs, self.servowheel.dofs,
@@ -79,37 +79,38 @@ class ServoMotor(SofaObject):
 
     def addVisualModel(self):
         self.visualmodel = VisualModel(self.node, 'data/mesh2/SG90_servomotor.stl')
-        self.visualmodel.node.createObject('RigidMapping', name = "mapping")
+        self.visualmodel.node.createObject('RigidMapping', name="mapping")
 
 
 class ServoWheel(SofaObject):
     def __init__(self, parentNode):
         self.node = Node(parentNode, "ServoWheel")
-        self.dofs = self.node.createObject("MechanicalObject", size=1, template='Rigid',
+        self.dofs = self.node.createObject("MechanicalObject", size=1, template='Rigid3',
                                            showObject=True, showObjectScale=15, name="dofs")
         self.node.createObject("RigidRigidMapping", name="map", applyRestPosition=True)
-        
+
+
 class KinematicMotorController(Sofa.PythonScriptController):
     """
         This controller is in charge of transforming the angular 'positional' control of the
         of the ServoWheel.
     """
+
     def __init__(self, node, parentframe, target, dmap, angleValue):
         self.name = "controller"
         self.parentframe = parentframe
         self.node = node
         self.target = target
         self.dmap = dmap
-        self.addNewData("angle", "Properties", "The angular position of the motor (in radians)","double", angleValue)
+        self.addNewData("angle", "Properties", "The angular position of the motor (in radians)", "double", angleValue)
 
     def applyAngleToServoWheel(self, angle):
         rigidparent = RigidDof(self.parentframe)
         rigidtarget = RigidDof(self.target)
 
-        rigidtarget.copyFrom( rigidparent )
-        #rigidtarget.rotateAround( rigidparent.left, angle)
-        self.dmap.initialPoints = [0.0,0.0,0.0]+list(Quat.createFromEuler([angle,0,0]))
-        
+        rigidtarget.copyFrom(rigidparent)
+        self.dmap.initialPoints = [0.0, 0.0, 0.0]+list(Quat.createFromEuler([angle, 0,0]))
+
     def bwdInitGraph(self, root):
         self.applyAngleToServoWheel(self.angle)
 
@@ -124,15 +125,12 @@ def createScene(rootNode):
 
     from stlib.scene import MainHeader
     scene = Scene(rootNode)
-    s=DefaultSolver(rootNode)
-    #scene.createObject("EulerImplicitSolver")
-    #scene.createObject("SparseLDLSolver")
-    
-    ### Test a assembly that also implements a KinematicMotorController
-    ## The angle of the KinematicMotorController is dynamically changed using a
-    ## animation function
-    servomotor = ServoMotor(rootNode, translation=[2,0,0])
-    #servomotor.node.createObject("FixedConstraint")
+    s = DefaultSolver(rootNode)
+
+    # Test a assembly that also implements a KinematicMotorController
+    # The angle of the KinematicMotorController is dynamically changed using a
+    # animation function
+    servomotor = ServoMotor(rootNode, translation=[2, 0, 0])
     def myAnimation(motorctrl, factor):
         motorctrl.angle = LinearRamp(-3.14/2, 3.14/2, factor)
 
